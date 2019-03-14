@@ -11,8 +11,8 @@ public class Learn3 {
         ProducerThread p3 = new ProducerThread(resource);
         //消费者线程
         ConsumerThread c1 = new ConsumerThread(resource);
-        //ConsumerThread c2 = new ConsumerThread(resource);
-        //ConsumerThread c3 = new ConsumerThread(resource);
+        ConsumerThread c2 = new ConsumerThread(resource);
+        ConsumerThread c3 = new ConsumerThread(resource);
 
         p1.start();
         p2.start();
@@ -23,6 +23,9 @@ public class Learn3 {
     }
 }
 
+/**
+ * 资源类 加锁这里易于修改
+ */
 class Resource{
     private int num = 0;
     private int size = 10;

@@ -4,4 +4,7 @@
         使用Hash表和双向链表实现O(1)复杂度的LRU调度算法
 ## Learn 3
         使用synchronized关键字对资源的add和remove操作进行加锁 使用wait和notifyAll实现消费者生产者模式
+## Learn 4
+        编写中ing
+      
 

@@ -1,8 +1,4 @@
-```java
-    public static void main(String[] args){
-        HashMap hashMap = new HashMap();
-    }
-```
+**HashMap源码分析**  
 数据结构采用Node<K,V>[],是一个链表结构的对象  
 JDK10采用的数组+链表+红黑树的结构
 ```java

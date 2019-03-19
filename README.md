@@ -5,6 +5,6 @@
 ## Learn 3
         使用synchronized关键字对资源的add和remove操作进行加锁 使用wait和notifyAll实现消费者生产者模式
 ## Learn 4
-        编写中ing
+        HashMap源码各个方法独立分析
       
 

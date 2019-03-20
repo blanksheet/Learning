@@ -159,3 +159,138 @@ find 方法详解
             return null;
         }
 ```
+put 方法详解  
+1.table为空或者table.length等于0，这样将调用resize操作初始化  
+2.如果计算出来该key对应table的index为null 则将该key-value存入该节点  
+3.如该table的index非空，说明该点已经有data 则将该data插入链表或者红黑树  
+4.如相等，则将p点赋值给e点  
+5.如果p点是红黑树节点，则调用putTreeVal函数插入  
+6.走到这里就是链表入口，遍历链表，并插入到链表末端  
+7.判断链表长度是否大于TREEIFY_THRESHOLD - 1,大于执行treeifyBin转化为红黑树  
+8.将p节点赋值给e点
+9.如果e非空，则说明查找到了节点 将新节点的value赋值给旧节点 返回就节点的value  
+10.插入节点后超出阈值，则调用resize方法扩容  
+11.这里的afterNodeAccess(e);afterNodeInsertion(evict);都是LinkedHashMap的方法  
+12.transient int size;transient int modCount; 这里transient关键字修饰是为了反序列化 元素本身无意义或者容易复现 为了节省空间
+
+```java
+    public V put(K key, V value) {
+        return putVal(hash(key), key, value, false, true);
+    }
+    
+    final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
+                   boolean evict) {
+        Node<K,V>[] tab; Node<K,V> p; int n, i;
+        if ((tab = table) == null || (n = tab.length) == 0)
+            n = (tab = resize()).length;
+        if ((p = tab[i = (n - 1) & hash]) == null)
+            tab[i] = newNode(hash, key, value, null);
+        else {
+            Node<K,V> e; K k;
+            if (p.hash == hash &&
+                ((k = p.key) == key || (key != null && key.equals(k))))
+                e = p;
+            else if (p instanceof TreeNode)
+                e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+            else {
+                for (int binCount = 0; ; ++binCount) {
+                    if ((e = p.next) == null) {
+                        p.next = newNode(hash, key, value, null);
+                        if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                            treeifyBin(tab, hash);
+                        break;
+                    }
+                    if (e.hash == hash &&
+                        ((k = e.key) == key || (key != null && key.equals(k))))
+                        break;
+                    p = e;
+                }
+            }
+            if (e != null) { // existing mapping for key
+                V oldValue = e.value;
+                if (!onlyIfAbsent || oldValue == null)
+                    e.value = value;
+                afterNodeAccess(e);
+                return oldValue;
+            }
+        }
+        ++modCount;
+        if (++size > threshold)
+            resize();
+        afterNodeInsertion(evict);
+        return null;
+    } 
+```
+putTreeVal 方法详解  
+1.如parent非空，调用root函数计算root，反之说明树为空，指向当前节点 换而言之，索引位置的根节点不是红黑树的根节点  
+2.如传入的hash值小于p点的hash，置dir为-1 代表向左查询  
+3.如传入的hash值大于p点的hash，置dir为1 代表向右查询  
+4.如当前节点与节点p相等 返回p节点  
+5.如k所属类没有实现comparable接口或者k和节点p的key相等，第一次会从p节点的左子树和右子树分别调用find方法，如找到返回节点q 如不是第一次查找，调用tieBreakOrder方法赋值给dir 根据dir正负决定查找方向  
+6.如dir为负数，则向p.left查找，如dir为正数，则向p.right查找。进行下一次循环  
+7.如当前节点查找后为空，代表当前位置为红黑树插入位置  
+8.保存xp为当前查找最后一个节点 保存xpn为xp的next节点（这里是链表关系）  根据dir的值决定存储在xp节点的左节点或右节点 同时维护链表结构 将xp.next赋值为x 将x的prev和parent设置为xp 如xpn非空则会这里需要设置xpn的prev为x 维护链表结构  
+9.进行红黑树的插入平衡调整 moveRootToFront(tab, balanceInsertion(root, x));  
+注：xp节点在此处可能是叶子节点、没有左节点的节点、没有右节点的节点三种情况，即使它是叶子节点，它也可能有next节点，红黑树的结构跟链表的结构是互不影响的，不会因为某个节点是叶子节点就说它没有next节点，红黑树在进行操作时会同时维护红黑树结构和链表结构，next属性就是用来维护链表结构的
+
+```java
+        final TreeNode<K,V> putTreeVal(HashMap<K,V> map, Node<K,V>[] tab,
+                                       int h, K k, V v) {
+            Class<?> kc = null;
+            boolean searched = false;
+            TreeNode<K,V> root = (parent != null) ? root() : this;
+            for (TreeNode<K,V> p = root;;) {
+                int dir, ph; K pk;
+                if ((ph = p.hash) > h)
+                    dir = -1;
+                else if (ph < h)
+                    dir = 1;
+                else if ((pk = p.key) == k || (k != null && k.equals(pk)))
+                    return p;
+                else if ((kc == null &&
+                          (kc = comparableClassFor(k)) == null) ||
+                         (dir = compareComparables(kc, k, pk)) == 0) {
+                    if (!searched) {
+                        TreeNode<K,V> q, ch;
+                        searched = true;
+                        if (((ch = p.left) != null &&
+                             (q = ch.find(h, k, kc)) != null) ||
+                            ((ch = p.right) != null &&
+                             (q = ch.find(h, k, kc)) != null))
+                            return q;
+                    }
+                    dir = tieBreakOrder(k, pk);
+                }
+
+                TreeNode<K,V> xp = p;
+                if ((p = (dir <= 0) ? p.left : p.right) == null) {
+                    Node<K,V> xpn = xp.next;
+                    TreeNode<K,V> x = map.newTreeNode(h, k, v, xpn);
+                    if (dir <= 0)
+                        xp.left = x;
+                    else
+                        xp.right = x;
+                    xp.next = x;
+                    x.parent = x.prev = xp;
+                    if (xpn != null)
+                        ((TreeNode<K,V>)xpn).prev = x;
+                    moveRootToFront(tab, balanceInsertion(root, x));
+                    return null;
+                }
+            }
+        }
+
+```
+tieBreakOrder方法详解  
+当hashcode相等且没有实现comparable接口时，提供一个一致性插入规则维护重定位的等价性
+```java
+        static int tieBreakOrder(Object a, Object b) {
+            int d;
+            if (a == null || b == null ||
+                (d = a.getClass().getName().
+                 compareTo(b.getClass().getName())) == 0)
+                d = (System.identityHashCode(a) <= System.identityHashCode(b) ?
+                     -1 : 1);
+            return d;
+        }
+```

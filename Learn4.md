@@ -294,3 +294,32 @@ tieBreakOrder方法详解
             return d;
         }
 ```
+treeifyBin方法详解   
+1.如果table为空或者table.length小于64，调用resize方法进行扩容   
+2.根据hash计算索引值，并遍历该索引上的全部链表   
+3.调用replacementTreeNode方法(return new TreeNode<>(p.hash, p.key, p.value, next);)将该节点转化成红黑树节点   
+4.将头节点赋值给hd，对之后遍历的节点进行链表操作(p.prev = tl;tl.next = p;)   
+5.将树的头节点hd赋值给链表的索引位置上，如非空，调用treeify构建红黑树
+```java
+    final void treeifyBin(Node<K,V>[] tab, int hash) {
+        int n, index; Node<K,V> e;
+        if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
+            resize();
+        else if ((e = tab[index = (n - 1) & hash]) != null) {
+            TreeNode<K,V> hd = null, tl = null;
+            do {
+                TreeNode<K,V> p = replacementTreeNode(e, null);
+                if (tl == null)
+                    hd = p;
+                else {
+                    p.prev = tl;
+                    tl.next = p;
+                }
+                tl = p;
+            } while ((e = e.next) != null);
+            if ((tab[index] = hd) != null)
+                hd.treeify(tab);
+        }
+    }
+
+```

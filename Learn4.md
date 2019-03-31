@@ -324,7 +324,13 @@ treeifyBin方法详解
 
 ```
 treeify方法详解   
-1.调用此方法的节点作为起点遍历，并将该节点设为root节点，标记为黑色(x.red = false)
+1.调用此方法的节点作为起点遍历，并将该节点设为root节点，标记为黑色(x.red = false)   
+2.如果当前节点不是根节点 则遍历树找到该节点的位置   
+3.此处查找插入节点位置和上文putTreeVal代码思路一样 参考上文实现   
+4.如果p.left || p.right == null 则代表找到插入节点位置   
+5.将p赋值给临时变量xp，如dir < 0 将x插入xp的左边 反之右边   
+6.调用balanceInsertion方法进行红黑树的插入平衡调整   
+7.最后调用moveRootToFront将root调整的索引头节点的位置
 
 ```java
         final void treeify(Node<K,V>[] tab) {

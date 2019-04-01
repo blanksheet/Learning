@@ -375,3 +375,64 @@ treeify方法详解
             moveRootToFront(tab, root);
         }
 ```
+moveRoorToFront方法详解   
+1.检测root是否为null table是否为null tab.length是否为0   
+2.计算index值 判断tab[index]是否与root相等 即该位置的头节点是否为root节点 如不是按照以下操作将该位置的头节点替换成root      
+3.将该索引位置的头结点赋值为root节点，如果root节点的next节点不为空，则将root节点的next节点的prev属性设置为root节点的prev节点。   
+4.如果root节点的prev节点不为空，则将root节点的prev节点的next属性设置为root节点的next节点（3和4两个操作是一个完整的链表移除某个节点过程）。   
+5.如果原头节点不为空，则将原头节点的prev属性设置为root节点   
+6.将root节点的next属性设置为原头节点（5和6两个操作将first节点接到root节点后面）   
+7.root此时已经被放到该位置的头结点位置，因此将prev属性设为空。   
+8.断言checkInvariants方法检查红黑树是否符合规则   
+```java
+        static <K,V> void moveRootToFront(Node<K,V>[] tab, TreeNode<K,V> root) {
+            int n;
+            if (root != null && tab != null && (n = tab.length) > 0) {
+                int index = (n - 1) & root.hash;
+                TreeNode<K,V> first = (TreeNode<K,V>)tab[index];
+                if (root != first) {
+                    Node<K,V> rn;
+                    tab[index] = root;
+                    TreeNode<K,V> rp = root.prev;
+                    if ((rn = root.next) != null)
+                        ((TreeNode<K,V>)rn).prev = rp;
+                    if (rp != null)
+                        rp.next = rn;
+                    if (first != null)
+                        first.prev = root;
+                    root.next = first;
+                    root.prev = null;
+                }
+                assert checkInvariants(root);
+            }
+        }
+```
+checkInvariants方法详解   
+传入红黑树的节点 进行简单的校验 维护红黑树的规则    
+如当前节点为红色节点，则该节点的左右节点都不能为红色   
+并对左右节点分别递归调用该方法，如节点不符合红黑树规则 返回false
+
+```java
+        static <K,V> boolean checkInvariants(TreeNode<K,V> t) {
+            TreeNode<K,V> tp = t.parent, tl = t.left, tr = t.right,
+                tb = t.prev, tn = (TreeNode<K,V>)t.next;
+            if (tb != null && tb.next != t)
+                return false;
+            if (tn != null && tn.prev != t)
+                return false;
+            if (tp != null && t != tp.left && t != tp.right)
+                return false;
+            if (tl != null && (tl.parent != t || tl.hash > t.hash))
+                return false;
+            if (tr != null && (tr.parent != t || tr.hash < t.hash))
+                return false;
+            if (t.red && tl != null && tl.red && tr != null && tr.red)
+                return false;
+            if (tl != null && !checkInvariants(tl))
+                return false;
+            if (tr != null && !checkInvariants(tr))
+                return false;
+            return true;
+        }
+    }
+```

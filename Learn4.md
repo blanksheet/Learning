@@ -440,7 +440,16 @@ resize方法详解
 1.将table赋值给oldTab，进行判断，为空则oldCap等于0，反之等于oldTab.length 同时将threshold赋值给oldThr   
 2.如oldCap大于0且oldThr大于MAXIMUM_CAPACITY，则装载元素超过最大容量，仅将threshold设置为Integer.MAX_VALUE并返回旧表(因为最大容量*2则超过Integer.MAX_VALUE，所以只把最大容量调整为最大值)     
 3.如oldCap大于0且oldThr小于MAXIMUM_CAPACITY，则通过位运算将newCap设置为oldCap的两倍(同时对newCap进行校验 小于Interger.MAX_VALUE；oldCap大于等于DEFAULT_INITIAL_CAPACITY初始容量16),将newThr设置为oldThr的两倍   
-4.
+4.如oldCap等于0且oldThr大于0，是传了容量new方法创建的空表，将新表的容量设置为旧表的阈值。这个发生在新建HashMap第一次调用put方法，HashMap没有capacity变量存储，所以初始容量存放在threshold上，所以旧表的threshold就是我们新创建的HashMap的capacity   
+5.如oldCap等于0且oldThr等于0，就是新建HashMap，将容量和阈值设置为默认值。   
+6.如新表的阈值为空，则是4情况下创建的，通过新的容量*装载因子得到新的阈值；非空则设置为计算的新阈值 新容量建立新表   
+7.如旧表不为空，则需要遍历所有节点，将节点赋值给新表。   
+8.将旧表上索引为i的头节点赋值给e节点，并将旧表上索引为i的节点设置为空（便于垃圾回收器回收）。如果e的next节点为空，说明只有一个节点，通过hash值计算索引位置，放到新表
+9.如e的next节点非空且为TreeNode，调用split方法进行hash分布计算   
+10.如e的next节点非空且非TreeNode，进行普通的hash分布计算。   
+11.如果e的hash值与旧表容量进行位于运算为0，说明e节点扩容后的位置和旧表的索引位置相同，如loTail为null，代表改节点为第一个节点，将loHead赋值为该节点；否则将该节点添加到loTail之后，将loTail赋值为新增节点   
+12.如果e的hash值与旧表容量进行位于运算为1，说明e节点扩容后的位置为旧表的索引位置+oldCap，如hiTail为null，代表改节点为第一个节点，将hiHead赋值为该节点；否则将该节点添加到hiTail之后，将hiTail赋值为新增节点   
+13.旧表rehash结束后，如果loTail非空，将最后一个节点设为null，在新表原索引的位置设置为对应的头结点；如HiTail非空，将最后一个节点设为null，在新表原索引的位置+oldCap的节点设置为对应的头结点 返回新表。
 
 ```java
     final Node<K,V>[] resize() {
